@@ -1,25 +1,34 @@
 from pandas_datareader import data
 from datetime import datetime
 import constants
-import pandas as pd
+import json
+from plotly import utils
 import plotly.express as px
 
 
-def get_graph(tickers, start_date, end_date):
+def get_graph(tick, start_date_str, end_date_str):
+    #Set error, error message and add to final json, ciao
     constants.setup_api_key()
-    end_date = datetime.strptime(end_date, '%Y-%m-%d')
-    start_date = datetime.strptime(start_date, '%Y-%m-%d')
+    end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+    start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+    today_date = datetime.today()
+    error = dict()
+    if start_date >= end_date:
+        error["PRS-1"] = "Wrong date range"
+        graph_json = json.dumps(error)
+        return graph_json
+    if start_date > today_date or end_date > today_date:
+        error["PRS-2"] = "Date should not be later than today"
+        graph_json = json.dumps(error)
+        return graph_json
+    stock_data = data.DataReader(tick, "av-daily", start=start_date, end=end_date)[["close"]]
 
-    stock_data = pd.DataFrame()
-    stock_data_tick = pd.DataFrame()
-
-    for tick in tickers:
-        stock_data_tick = data.DataReader(tick, "av-daily", start=start_date, end=end_date)
-        stock_data[tick] = stock_data_tick["close"]
-    stock_data.index = stock_data_tick.index
-
-    fig = px.line(stock_data, x=stock_data.index, y=stock_data.columns, markers=True)
-
-    # fig.update_layout(title='Tech Stocks past 90 Days')
+    fig = px.line(stock_data, x=stock_data.index, y=stock_data.columns)
+    fig.update_layout(template="plotly_dark", showlegend=False)
+    fig.update_yaxes(title_text="Close ($)")
+    # fig.update_layout(markers=true)
+    fig.update_layout(title='%s Stocks from %s to %s' % (tick, start_date_str, end_date_str))
     # fig.update_layout(legend_title_text='Companies')
-    fig.write_html("templates\\graph.html")
+    graph_json = json.dumps(fig, cls=utils.PlotlyJSONEncoder)
+    return graph_json
+    # fig.write_html("templates\\graph.html")
