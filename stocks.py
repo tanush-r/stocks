@@ -29,6 +29,8 @@ class stocks:
             self.error = "Wrong date range."
         elif self.start_date > self.today_date or self.end_date > self.today_date:
             self.error = "Date should not be later than today."
+        elif self.start_date.year < 2000:
+            self.error = "Date should not be before Jan 1, 2000."
 
     def string_to_datetime(self):
         try:
